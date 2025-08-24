@@ -61,6 +61,35 @@ These can be obtained from the 'opusfile' download at http://opus-codec.org/down
 Requires pyaudio:
 https://people.csail.mit.edu/hubert/pyaudio/
 
+### Debian Linux
+
+Install the following *before* installing Python requirements.
+
+```
+sudo apt-get install -y build-essential python3-dev python3.11-dev \
+    portaudio19-dev libpulse0 libpulse-dev pulseaudio-utils pulseaudio
+```
+
+Enable PulseAudio daemon
+
+```
+systemctl --user enable --now pulseaudio.service pulseaudio.socket
+```
+
+#### Raspberry Pi Notes
+
+The following two changes were made to prevent issues on a Raspberry Pi 3B.
+
+The frame buffer was doubled:
+```
+frames_per_buffer=audio_chunk * 2
+```
+
+The stream will no longer raise exceptions on overflow; I found that the Pis would work just fine ignoring them.
+```
+data = stream.read(audio_chunk, exception_on_overflow=False)  
+```
+
 ### Required Python packages
 ```
 pip3 install pycryptodome  

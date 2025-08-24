@@ -163,7 +163,7 @@ def start_audio(config, p):
         channels=config["audio_input_channels"],
         rate=config["audio_input_sample_rate"],
         input=True,
-        frames_per_buffer=audio_chunk,
+        frames_per_buffer=audio_chunk * 2,  # Increase buffer for lower spec devices
         input_device_index=input_device_index,
     )
     LOG.debug("audio input opened")
@@ -227,7 +227,7 @@ def start_audio(config, p):
 def record_chunk(config, stream, channel="mono"):
     audio_chunk = int(config["audio_input_sample_rate"] * 0.06)
     alldata = bytearray()
-    data = stream.read(audio_chunk)
+    data = stream.read(audio_chunk, exception_on_overflow=False)  # Remove exception for lower spec devices
     alldata.extend(data)
     data = frombuffer(alldata, dtype=short)
 
