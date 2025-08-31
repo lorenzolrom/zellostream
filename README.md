@@ -90,6 +90,13 @@ The stream will no longer raise exceptions on overflow; I found that the Pis wou
 data = stream.read(audio_chunk, exception_on_overflow=False)  
 ```
 
+The audio going out to the radio may be on the lower side.  Raise the output volume:
+
+```
+  pactl list sinks short
+  pactl set-sink-volume <output name> 200%
+```
+
 ### Required Python packages
 ```
 pip3 install pycryptodome  
