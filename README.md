@@ -90,11 +90,20 @@ The stream will no longer raise exceptions on overflow; I found that the Pis wou
 data = stream.read(audio_chunk, exception_on_overflow=False)  
 ```
 
-The audio going out to the radio may be on the lower side.  Raise the output volume:
+The audio going to the radio may be on the lower side.  Raise the output volume:
 
 ```
   pactl list sinks short
   pactl set-sink-volume <output name> 200%
+```
+
+The audio going to Zello may be too 'hot' and clip.  Decrease the input volume:
+```
+pactl list short sources
+0	alsa_output.platform-3f00b840.mailbox.stereo-fallback.monitor	module-alsa-card.c	s16le 2ch 44100Hz	SUSPENDED
+1	alsa_output.usb-C-Media_Electronics_Inc._USB_Audio_Device-00.analog-stereo.monitor	module-alsa-card.c	s16le 2ch 44100Hz	SUSPENDED
+2	alsa_input.usb-C-Media_Electronics_Inc._USB_Audio_Device-00.mono-fallback	module-alsa-card.c	s16le 1ch 44100Hz	SUSPENDED
+pactl set-source-volume 2 40%
 ```
 
 ### Required Python packages
