@@ -134,3 +134,50 @@ zellostream.py sends audio to zello in the order recieved via UDP packets with n
 A single talkgroup can be streamed in one of two ways:
 - Configure the trunk-recorder simplestream plugin to only send audio from a single talkgroup with the "sendTGID" parameter set to false in the simplestream configuration.  In the zellostreamUDP.py config.json file, set TGID_in_stream to false.
 - Configure the trunk-recorder simplesstream plugin to send audio from multiple talkgroups with the "sendTGID" parameter set to true in the simplestream configuration.  In the zellostreamUDP.py config.json file, set TGID_in_stream to true and TGID_to_play to the desired talkgroup ID to stream.
+
+
+## Set zellostream as a daemon process
+
+Create a new service file, e.g. `/etc/systemd/system/zellostream.service`.
+
+```
+sudo nano /etc/systemd/system/zellostream.service
+```
+
+Set up using the Python virtual environment
+
+```
+[Unit]
+Description=Zello Stream Service
+After=network.target
+
+[Service]
+WorkingDirectory=/home/pi/zellostream
+ExecStart=/home/pi/zellostream/.venv/bin/python3 /home/pi/zellostream/zellostream.py
+Restart=always
+User=pi
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Once saved, enable and start the service.
+
+```
+sudo systemctl daemon-reload
+sudo systemctl enable zellostream.service
+sudo systemctl start zellostream.service
+```
+
+Watch logs
+```
+journalctl -u zellostream.service -f
+```
+
+Disable or stop service
+```
+sudo systemctl stop zellostream.service
+sudo systemctl disable zellostream.service
+
+```
