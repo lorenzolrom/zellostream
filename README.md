@@ -61,6 +61,51 @@ These can be obtained from the 'opusfile' download at http://opus-codec.org/down
 Requires pyaudio:
 https://people.csail.mit.edu/hubert/pyaudio/
 
+### Debian Linux
+
+Install the following *before* installing Python requirements.
+
+```
+sudo apt-get install -y build-essential python3-dev python3.11-dev \
+    portaudio19-dev libpulse0 libpulse-dev pulseaudio-utils pulseaudio
+```
+
+Enable PulseAudio daemon
+
+```
+systemctl --user enable --now pulseaudio.service pulseaudio.socket
+```
+
+#### Raspberry Pi Notes
+
+The following two changes were made to prevent issues on a Raspberry Pi 3B.
+
+The frame buffer was doubled:
+```
+frames_per_buffer=audio_chunk * 2
+```
+
+The stream will no longer raise exceptions on overflow; I found that the Pis would work just fine ignoring them.
+```
+data = stream.read(audio_chunk, exception_on_overflow=False)  
+```
+
+The audio going to the radio may be on the lower side.  Raise the output volume:
+
+```
+  pactl list sinks short
+  pactl set-sink-volume <output name> 200%
+```
+
+The audio going to Zello may be too 'hot' and clip.  Decrease the input volume:
+```
+pactl list short sources
+0	alsa_output.platform-3f00b840.mailbox.stereo-fallback.monitor	module-alsa-card.c	s16le 2ch 44100Hz	SUSPENDED
+1	alsa_output.usb-C-Media_Electronics_Inc._USB_Audio_Device-00.analog-stereo.monitor	module-alsa-card.c	s16le 2ch 44100Hz	SUSPENDED
+2	alsa_input.usb-C-Media_Electronics_Inc._USB_Audio_Device-00.mono-fallback	module-alsa-card.c	s16le 1ch 44100Hz	SUSPENDED
+pactl set-source-volume 2 40%
+```
+
 ### Required Python packages
 ```
 pip3 install pycryptodome  
@@ -89,3 +134,50 @@ zellostream.py sends audio to zello in the order recieved via UDP packets with n
 A single talkgroup can be streamed in one of two ways:
 - Configure the trunk-recorder simplestream plugin to only send audio from a single talkgroup with the "sendTGID" parameter set to false in the simplestream configuration.  In the zellostreamUDP.py config.json file, set TGID_in_stream to false.
 - Configure the trunk-recorder simplesstream plugin to send audio from multiple talkgroups with the "sendTGID" parameter set to true in the simplestream configuration.  In the zellostreamUDP.py config.json file, set TGID_in_stream to true and TGID_to_play to the desired talkgroup ID to stream.
+
+
+## Set zellostream as a daemon process
+
+Create a new service file, e.g. `/etc/systemd/system/zellostream.service`.
+
+```
+sudo nano /etc/systemd/system/zellostream.service
+```
+
+Set up using the Python virtual environment
+
+```
+[Unit]
+Description=Zello Stream Service
+After=network.target
+
+[Service]
+WorkingDirectory=/home/pi/zellostream
+ExecStart=/home/pi/zellostream/.venv/bin/python3 /home/pi/zellostream/zellostream.py
+Restart=always
+User=pi
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Once saved, enable and start the service.
+
+```
+sudo systemctl daemon-reload
+sudo systemctl enable zellostream.service
+sudo systemctl start zellostream.service
+```
+
+Watch logs
+```
+journalctl -u zellostream.service -f
+```
+
+Disable or stop service
+```
+sudo systemctl stop zellostream.service
+sudo systemctl disable zellostream.service
+
+```
