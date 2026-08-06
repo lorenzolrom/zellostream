@@ -492,6 +492,9 @@ class ZelloConnection:
         return ws.recv()
 
 
+RATE_LIMIT_ERROR_MARKERS = ("woodpecker", "penalty")
+
+
 def start_stream(config, conn, pending):
     send = {
         "command": "start_stream",
@@ -529,7 +532,14 @@ def start_stream(config, conn, pending):
         if "stream_id" in data:
             return int(data["stream_id"])
         if "error" in data:
-            LOG.warning("error %s", data["error"])
+            error_text = str(data["error"])
+            if any(marker in error_text.lower() for marker in RATE_LIMIT_ERROR_MARKERS):
+                # Server is throttling us for opening streams too often.
+                # Retrying immediately just re-triggers the same penalty --
+                # bail out now and let the caller back off instead.
+                LOG.warning("rate limited by server (%s), backing off", error_text)
+                return None
+            LOG.warning("error %s", error_text)
         time.sleep(0.5)
     LOG.warning("bailing out")
     return None
@@ -869,6 +879,8 @@ def tx_thread_run(config, conn, pending, stop_event, tx_queue):
     stream_id = None
     quiet_samples = 0
     session_timer = 0.0
+    backoff = 2.0
+    MAX_BACKOFF = 20.0
 
     def stop_active():
         nonlocal active, stream_id
@@ -899,9 +911,11 @@ def tx_thread_run(config, conn, pending, stop_event, tx_queue):
                     continue
                 stream_id = start_stream(config, conn, pending)
                 if not stream_id:
-                    LOG.warning("Cannot start stream")
-                    stop_event.wait(1)
+                    LOG.warning("Cannot start stream, backing off %.0fs", backoff)
+                    stop_event.wait(backoff)
+                    backoff = min(backoff * 2, MAX_BACKOFF)
                     continue
+                backoff = 2.0
                 LOG.info("sending to stream_id %d", stream_id)
                 active = True
                 quiet_samples = 0
@@ -912,9 +926,12 @@ def tx_thread_run(config, conn, pending, stop_event, tx_queue):
                 stop_stream(conn, stream_id)
                 stream_id = start_stream(config, conn, pending)
                 if not stream_id:
-                    LOG.warning("Cannot start stream")
+                    LOG.warning("Cannot start stream, backing off %.0fs", backoff)
                     active = False
+                    stop_event.wait(backoff)
+                    backoff = min(backoff * 2, MAX_BACKOFF)
                     continue
+                backoff = 2.0
                 session_timer = time.time()
 
             if len(data) > 0:
