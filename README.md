@@ -114,17 +114,10 @@ pip3 install pulsectl
 pip3 install websocket-client  
 pip3 install numpy --upgrade  
 pip3 install opuslib  
-pip3 install librosa
+pip3 install soxr
 ```
 
-### Installing librosa on a Raspberry Pi
-```
-sudo apt-get install llvm-11  
-LLVM_CONFIG=llvm-config-11 pip3 install llvmlite  
-LLVM_CONFIG=llvm-config-11 pip3 install librosa  
-sudo apt-get install libblas-dev  
-sudo apt-get install libatlas-base-dev
-```
+`soxr` ships a prebuilt wheel for 64-bit Raspberry Pi OS (aarch64) on Python 3.9-3.12, so no extra build steps are needed there. On 32-bit Raspberry Pi OS (armv7l) it will build from source and needs a C++ compiler (`sudo apt-get install build-essential`); this only happens once at install time.
 
 ## Using zellostream.py with trunk-recorder
 The [simplestream plugin](https://github.com/robotastic/trunk-recorder/blob/master/docs/CONFIGURE.md#simplestream-plugin) of trunk-recorder can be be used to send audio from trunk-recorder in real time, as it is being recorded.  zellostream.py can receive this audio and stream it to Zello with low latency.

@@ -1,5 +1,5 @@
 numpy
-librosa
+soxr
 opuslib==3.0.1
 PyAudio
 pulsectl
